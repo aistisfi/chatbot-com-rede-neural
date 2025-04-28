@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Especialista em ACCs</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+        
+        .chat-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chat-header img {
+            width: 40px;
+            height: 40px;
+            margin-right: 15px;
+            border-radius: 50%;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+            background-color: var(--secondary-color);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .bot-message {
+            background-color: white;
+            color: var(--dark-color);
+            border: 1px solid #ddd;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .confidence-meter {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .confidence-label {
+            margin-right: 8px;
+            color: #7f8c8d;
+        }
+        
+        .confidence-bar {
+            flex-grow: 1;
+            height: 8px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f39c12, var(--success-color));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .confidence-value {
+            margin-left: 8px;
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+        
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #eee;
+        }
+        
+        #user-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.3s;
+        }
+        
+        #user-input:focus {
+            border-color: var(--secondary-color);
+        }
+        
+        #send-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 0 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        #send-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        #send-button:active {
+            transform: translateY(0);
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 10px 16px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 18px;
+            margin-bottom: 15px;
+            width: fit-content;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #7f8c8d;
+            margin: 0 2px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 20px;
+            background-color: #f9f9f9;
+            border-top: 1px solid #eee;
+        }
+        
+        .suggestion {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .suggestion:hover {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .bot-avatar {
+            width: 30px;
+            height: 30px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-left: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .chat-container {
+                height: 80vh;
+            }
+            
+            .message {
+                max-width: 90%;
+            } 
+            
+            /**/ 
+
+            .follow-up-options {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.follow-up-btn {
+    padding: 10px 15px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    text-align: left;
+    width: 100%;
+    max-width: 300px;
+}
+
+.follow-up-btn:hover {
+    background-color: #2980b9;
+    transform: translateX(5px);
+}
+
+.follow-up-btn:nth-child(2) {
+    background-color: var(--primary-color);
+}
+
+.follow-up-btn:nth-child(3) {
+    background-color: var(--accent-color);
+}
+        }
+
+        .follow-up-options {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.follow-up-btn {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #3498db, #2c3e50);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    width: 100%;
+    max-width: 350px;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.follow-up-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    transition: width 0.4s ease;
+    z-index: -1;
+}
+
+.follow-up-btn:hover {
+    transform: translateX(8px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.follow-up-btn:hover::before {
+    width: 100%;
+}
+
+.follow-up-btn:nth-child(2) {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.follow-up-btn:nth-child(2)::before {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+.follow-up-btn:nth-child(3) {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+.follow-up-btn:nth-child(3)::before {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Chatbot Especialista em ACCs</h1>
+            <div class="subtitle">Obtenha respostas precisas sobre Automação e Controle</div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-header">
+                <img src="https://cdn-icons-png.flaticon.com/512/4712/4712035.png" alt="Chatbot Icon">
+                <h2>Assistente de ACCs</h2>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                <div class="message bot-message">
+                    <div class="message-header">
+                        <div class="bot-avatar">AC</div>
+                        <strong>Assistente de ACCs</strong>
+                        <span class="message-time">agora</span>
+                    </div>
+                    Olá! Sou um assistente especializado em Automação e Controle (ACCs). Como posso ajudar você hoje?
+                    <div class="confidence-meter">
+                        <span class="confidence-label">Confiança:</span>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: 100%"></div>
+                        </div>
+                        <span class="confidence-value">100%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="suggestions">
+                <div class="suggestion">O que são accs ? </div>
+                <div class="suggestion">Como obter accs ?</div>
+                <div class="suggestion">Preciso validar minhas accs</div>
+                <div class="suggestion">Que projetos oferecem accs ?</div>
+            </div>
+            
+            <div class="typing-indicator" id="typing-indicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="user-input" minlength="10" placeholder="Digite sua pergunta sobre ACCs..." autofocus>
+                <button id="send-button">Enviar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+<script>
+// Configuração inicial do chatbot
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos da interface
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const suggestions = document.querySelectorAll('.suggestion');
+    
+    // Histórico de conversa para detectar repetição
+    let conversationHistory = [];
+    let repeatedTopics = {};
+    
+    // Dados de treinamento para a rede neural (intenções e respostas)
+    const trainingData = {
+        "saudacao": {
+            "patterns": ["olá", "oi", "e aí", "bom dia", "boa tarde", "boa noite"],
+            "responses": [
+                "Olá! Como posso ajudar com suas dúvidas sobre ACCs hoje?",
+                "Oi! Pronto para falarmos sobre Automação e Controle?",
+                "Bom te ver por aqui! No que posso ajudar relacionado a ACCs?"
+            ]
+        },
+        "oque_sao_accs": {
+            "patterns": ["o que são accs", "defina accs", "significado de accs", "o que significa accs"],
+            "responses": [
+                "ACCs são Atividades Curriculares Complementares, componentes obrigatórios em muitos cursos superiores que complementam a formação acadêmica.",
+                "As ACCs (Atividades Curriculares Complementares) são atividades extracurriculares que enriquecem sua formação profissional.",
+                "ACCs representam Atividades Curriculares Complementares, essenciais para o desenvolvimento de competências além da sala de aula."
+            ],
+            "confidence": 0.95
+        },
+        "como_obter_accs": {
+            "patterns": ["como obter accs", "como conseguir accs", "onde pegar accs", "formas de obter accs"],
+            "responses": [
+                "Você pode obter ACCs participando de: eventos acadêmicos, cursos extracurriculares, projetos de pesquisa, atividades de extensão ou estágios não obrigatórios.",
+                "As ACCs podem ser conquistadas através de diversas atividades: palestras, workshops, publicações, participação em empresas júnior ou competições acadêmicas.",
+                "Existem várias formas: participação em seminários, monitorias, atividades culturais, projetos sociais relacionados à sua área ou cursos de línguas."
+            ],
+            "confidence": 0.90
+        },
+        "validar_accs": {
+            "patterns": ["validar accs", "como validar accs", "onde validar minhas accs", "processo de validação accs"],
+            "responses": [
+                "A validação de ACCs geralmente é feita na secretaria do seu curso ou no setor específico da instituição. Você precisa apresentar os certificados ou comprovantes das atividades.",
+                "Para validar ACCs, reúna todos os comprovantes de participação e submeta à coordenação do seu curso para análise e aprovação.",
+                "Cada instituição tem seu processo, mas normalmente você deve preencher um formulário e anexar os documentos comprobatórios das atividades realizadas."
+            ],
+            "confidence": 0.85
+        },
+        "projetos_accs": {
+            "patterns": ["projetos que oferecem accs", "quais projetos dão accs", "atividades que valem accs", "opções para accs"],
+            "responses": [
+                "Muitos projetos oferecem ACCs: iniciação científica, extensão universitária, participação em semanas acadêmicas, organização de eventos e cursos de capacitação.",
+                "Projetos como empresa júnior, grupos de estudo, competições de robótica ou programação, e voluntariado em áreas técnicas costumam valer ACCs.",
+                "Atividades como monitoria, publicação de artigos, participação em olimpíadas do conhecimento e desenvolvimento de protótipos são ótimas opções para ACCs."
+            ],
+            "confidence": 0.88
+        },
+        "quantidade_accs": {
+            "patterns": ["quantas accs preciso", "quantidade necessária de accs", "total de accs obrigatórias", "carga horária accs"],
+            "responses": [
+                "A quantidade varia conforme a instituição e curso. Geralmente fica entre 100 e 200 horas ao longo da graduação. Consulte o regulamento do seu curso.",
+                "O número exato de horas de ACCs necessárias você encontra no projeto pedagógico do seu curso, mas normalmente gira em torno de 10-15% da carga horária total.",
+                "Cada curso define seus requisitos. Em média, são necessárias 120 horas de ACCs, mas pode chegar a 200 horas em alguns casos."
+            ],
+            "confidence": 0.80
+        },
+        "dificuldade_accs": {
+            "patterns": ["é difícil conseguir accs", "como cumprir todas accs", "dificuldade em completar accs", "não consigo completar minhas accs"],
+            "responses": [
+                "Não é difícil se você planejar desde o início. Participe regularmente de eventos e atividades que interessam a você e que também contam como ACCs.",
+                "A dica é não deixar para a última hora. Distribua as ACCs ao longo do curso, participando de 2-3 atividades por semestre.",
+                "Muitos alunos acham desafiador, mas organizando-se e aproveitando oportunidades como semanas acadêmicas e minicursos, fica mais fácil."
+            ],
+            "confidence": 0.75
+        },
+        "tipos_accs": {
+            "patterns": ["tipos de accs", "categorias de accs", "classificação das accs", "quais são os tipos de accs"],
+            "responses": [
+                "As ACCs geralmente se dividem em: acadêmicas (palestras, cursos), pesquisa (iniciação científica), extensão (projetos comunitários) e culturais (atividades artísticas).",
+                "Podemos classificar as ACCs em: atividades de ensino, pesquisa, extensão, representação estudantil e desenvolvimento profissional.",
+                "Existem várias categorias: atividades complementares obrigatórias, eletivas, de extensão, culturais e esportivas, dependendo da instituição."
+            ],
+            "confidence": 0.82
+        },
+        "documentacao_accs": {
+            "patterns": ["documentos para accs", "o que preciso para comprovar accs", "comprovantes de accs", "certificados para accs"],
+            "responses": [
+                "Geralmente são necessários certificados com: nome da atividade, carga horária, data, assinatura do responsável e carimbo da instituição organizadora.",
+                "Para comprovar ACCs você precisa apresentar certificados válidos contendo no mínimo: seu nome completo, descrição da atividade, carga horária e dados da instituição.",
+                "Os documentos aceitos variam, mas normalmente incluem: certificados de participação, declarações oficiais, publicações ou relatórios de atividades aprovados."
+            ],
+            "confidence": 0.78
+        },
+        "prazo_accs": {
+            "patterns": ["prazo para entregar accs", "quando preciso ter minhas accs", "até quando posso validar accs", "data limite para accs"],
+            "responses": [
+                "O prazo final costuma ser antes da colação de grau, mas algumas instituições exigem que uma parte seja completada a cada semestre.",
+                "Normalmente você tem até o último semestre para cumprir as ACCs, mas verifique o regulamento do seu curso para prazos intermediários.",
+                "Cada instituição define seus prazos. Algumas exigem um percentual a cada ano, outras permitem acumular até o final do curso."
+            ],
+            "confidence": 0.70
+        },
+        "despedida": {
+            "patterns": ["tchau", "até logo", "obrigado", "valeu", "agradeço", "adeus"],
+            "responses": [
+                "Até logo! Se precisar de mais informações sobre ACCs, estou à disposição.",
+                "Foi um prazer ajudar! Volte sempre que tiver dúvidas sobre Automação e Controle.",
+                "Obrigado por conversar! Lembre-se de planejar suas ACCs com antecedência."
+            ]
+        }
+    };
+    
+    // Pré-processamento de texto
+    function preprocessText(text) {
+        return text.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // Remove acentos
+            .replace(/[^\w\s]/gi, '') // Remove pontuação
+            .trim();
+    }
+    
+    // Criar vocabulário a partir dos padrões de treinamento
+    function createVocabulary() {
+        const vocabulary = new Set();
+        for (const intent in trainingData) {
+            trainingData[intent].patterns.forEach(pattern => {
+                const words = preprocessText(pattern).split(/\s+/);
+                words.forEach(word => vocabulary.add(word));
+            });
+        }
+        return Array.from(vocabulary);
+    }
+    
+    const vocabulary = createVocabulary();
+    
+    // Vetorizar texto (one-hot encoding simplificado)
+    function textToVector(text) {
+        const vector = new Array(vocabulary.length).fill(0);
+        const words = preprocessText(text).split(/\s+/);
+        
+        words.forEach(word => {
+            const index = vocabulary.indexOf(word);
+            if (index !== -1) {
+                vector[index] = 1;
+            }
+        });
+        
+        return vector;
+    }
+    
+    // Preparar dados de treinamento para a rede neural
+    function prepareTrainingData() {
+        const texts = [];
+        const labels = [];
+        const intents = Object.keys(trainingData);
+        
+        // Criar mapeamento de intenção para índice
+        const intentIndexMap = {};
+        intents.forEach((intent, index) => {
+            intentIndexMap[intent] = index;
+        });
+        
+        // Preparar exemplos de treinamento
+        for (const intent in trainingData) {
+            trainingData[intent].patterns.forEach(pattern => {
+                texts.push(textToVector(pattern));
+                
+                // One-hot encoding para as labels
+                const label = new Array(intents.length).fill(0);
+                label[intentIndexMap[intent]] = 1;
+                labels.push(label);
+            });
+        }
+        
+        return {
+            texts: tf.tensor2d(texts),
+            labels: tf.tensor2d(labels),
+            intentIndexMap
+        };
+    }
+    
+    // Criar e treinar o modelo
+    async function createModel(vocabularySize, numClasses) {
+        const model = tf.sequential();
+        
+        model.add(tf.layers.dense({
+            inputShape: [vocabularySize],
+            units: 16,
+            activation: 'relu'
+        }));
+        
+        model.add(tf.layers.dense({
+            units: numClasses,
+            activation: 'softmax'
+        }));
+        
+        model.compile({
+            optimizer: 'adam',
+            loss: 'categoricalCrossentropy',
+            metrics: ['accuracy']
+        });
+        
+        return model;
+    }
+    
+    // Treinar o modelo
+    async function trainModel() {
+        const trainingData = prepareTrainingData();
+        const model = await createModel(vocabulary.length, Object.keys(trainingData.intentIndexMap).length);
+        
+        await model.fit(trainingData.texts, trainingData.labels, {
+            epochs: 100,
+            batchSize: 8,
+            shuffle: true,
+            verbose: 0
+        });
+        
+        return { model, intentIndexMap: trainingData.intentIndexMap };
+    }
+    
+    // Mapear índice para intenção
+    function mapIndexToIntent(index, intentIndexMap) {
+        for (const intent in intentIndexMap) {
+            if (intentIndexMap[intent] === index) {
+                return intent;
+            }
+        }
+        return null;
+    }
+    
+    // Inicializar o modelo
+    let modelAndMaps = null;
+    
+    trainModel().then(result => {
+        modelAndMaps = result;
+        console.log("Modelo treinado e pronto para uso!");
+    });
+    
+    // Detectar intenção usando o modelo treinado
+    async function detectIntent(text) {
+        if (!modelAndMaps) return null;
+        
+        const { model, intentIndexMap } = modelAndMaps;
+        const vector = textToVector(text);
+        const prediction = model.predict(tf.tensor2d([vector]));
+        const predictionData = await prediction.data();
+        prediction.dispose();
+        
+        // Obter a intenção com maior probabilidade
+        let maxIndex = 0;
+        let maxValue = predictionData[0];
+        
+        for (let i = 1; i < predictionData.length; i++) {
+            if (predictionData[i] > maxValue) {
+                maxIndex = i;
+                maxValue = predictionData[i];
+            }
+        }
+        
+        const intent = mapIndexToIntent(maxIndex, intentIndexMap);
+        return {
+            intent,
+            confidence: maxValue
+        };
+    }
+    
+    // Verificar se o tópico está sendo repetido
+    function checkRepeatedTopic(intent) {
+        conversationHistory.push(intent);
+        
+        // Contar ocorrências recentes do mesmo tópico
+        const recentHistory = conversationHistory.slice(-5); // Últimas 5 interações
+        const count = recentHistory.filter(i => i === intent).length;
+        
+        if (count > 2) { // Se o tópico apareceu mais de 2 vezes nas últimas 5 interações
+            if (!repeatedTopics[intent]) {
+                repeatedTopics[intent] = 0;
+            }
+            repeatedTopics[intent]++;
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Obter resposta aleatória para uma intenção
+    function getRandomResponse(intent) {
+        if (trainingData[intent] && trainingData[intent].responses) {
+            const responses = trainingData[intent].responses;
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        return null;
+    }
+    
+    // Adicionar mensagem ao chat
+    function addMessageToChat(sender, message, confidence = null) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+        
+        if (sender === 'bot') {
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="bot-avatar">AC</div>
+                    <strong>Assistente de ACCs</strong>
+                    <span class="message-time">${timeString}</span>
+                </div>
+                ${message}
+            `;
+            
+            if (confidence !== null) {
+                const confidencePercent = Math.round(confidence * 100);
+                messageDiv.innerHTML += `
+                    <div class="confidence-meter">
+                        <span class="confidence-label">Confiança:</span>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                        </div>
+                        <span class="confidence-value">${confidencePercent}%</span>
+                    </div>
+                `;
+            }
+        } else {
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <strong>Você</strong>
+                    <span class="message-time">${timeString}</span>
+                </div>
+                ${message}
+            `;
+        }
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Mostrar opções de acompanhamento
+    function showFollowUpOptions(intent) {
+        const followUpDiv = document.createElement('div');
+        followUpDiv.className = 'follow-up-options';
+        
+        // Opções baseadas na intenção detectada
+        let options = [];
+        
+        if (intent === 'oque_sao_accs') {
+            options = [
+                "Quais são os tipos de ACCs?",
+                "Como obter ACCs?",
+                "Quantas ACCs eu preciso?"
+            ];
+        } else if (intent === 'como_obter_accs') {
+            options = [
+                "Quais projetos oferecem ACCs?",
+                "Preciso validar minhas ACCs?",
+                "Quais documentos são necessários?"
+            ];
+        } else if (intent === 'validar_accs') {
+            options = [
+                "Onde posso validar minhas ACCs?",
+                "Quais documentos preciso para validar?",
+                "Qual o prazo para validar ACCs?"
+            ];
+        } else {
+            // Opções genéricas
+            options = [
+                "O que são ACCs?",
+                "Como obter ACCs?",
+                "Preciso validar minhas ACCs?"
+            ];
+        }
+        
+        options.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'follow-up-btn';
+            button.textContent = option;
+            button.addEventListener('click', () => {
+                userInput.value = option;
+                sendMessage();
+            });
+            followUpDiv.appendChild(button);
+        });
+        
+        chatMessages.appendChild(followUpDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Processar mensagem do usuário
+    async function processUserMessage(message) {
+        addMessageToChat('user', message);
+        userInput.value = '';
+        typingIndicator.style.display = 'flex';
+        
+        // Simular tempo de processamento
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+        
+        typingIndicator.style.display = 'none';
+        
+        const intentDetection = await detectIntent(message);
+        
+        if (!intentDetection || intentDetection.confidence < 0.3) {
+            // Baixa confiança na detecção de intenção
+            addMessageToChat('bot', 
+                `Não tenho certeza sobre a resposta para essa pergunta. 
+                Se precisar de ajuda mais específica, recomendo entrar em contato com o professor responsável pelas ACCs do seu curso.`,
+                0.4
+            );
+            return;
+        }
+        
+        const { intent, confidence } = intentDetection;
+        
+        // Verificar se o tópico está sendo repetido
+        const isRepeated = checkRepeatedTopic(intent);
+        
+        if (isRepeated && repeatedTopics[intent] > 1) {
+            // Resposta especial para tópicos repetidos
+            let response;
+            
+            if (intent === 'como_obter_accs') {
+                response = "Percebi que você está bastante interessado em como obter ACCs. Que tal agendar um horário com o coordenador do seu curso para discutir opções específicas?";
+            } else if (intent === 'validar_accs') {
+                response = "Notei que você tem várias dúvidas sobre validação de ACCs. Seria interessante conversar diretamente com a secretaria acadêmica para esclarecer todos os detalhes.";
+            } else {
+                response = "Parece que você tem muitas dúvidas sobre esse tópico. Talvez seja útil marcar uma conversa com o professor responsável pelas ACCs no seu curso para orientações mais personalizadas.";
+            }
+            
+            addMessageToChat('bot', response, confidence);
+            return;
+        }
+        
+        // Obter resposta aleatória para a intenção detectada
+        const response = getRandomResponse(intent);
+        
+        if (response) {
+            addMessageToChat('bot', response, confidence);
+            
+            // Mostrar opções de acompanhamento relevantes
+            if (confidence > 0.7) {
+                showFollowUpOptions(intent);
+            }
+        } else {
+            addMessageToChat('bot', 
+                `Não consegui encontrar uma resposta adequada para sua pergunta. 
+                Você pode reformular ou entrar em contato com o professor responsável pelas ACCs para mais informações.`,
+                0.3
+            );
+        }
+    }
+    
+    // Enviar mensagem
+    function sendMessage() {
+        const message = userInput.value.trim();
+        if (message.length < 3) return;
+        
+        processUserMessage(message);
+    }
+    
+    // Event listeners
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+    
+    // Adicionar listeners para as sugestões
+    suggestions.forEach(suggestion => {
+        suggestion.addEventListener('click', function() {
+            userInput.value = this.textContent;
+            sendMessage();
+        });
+    });
+});
+</script>
+
+    
+</body>
+</html>
