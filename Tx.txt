@@ -1,0 +1,121 @@
+// Adicionar esta seção logo após a definição do trainingData e antes do pré-processamento de texto
+
+// Dicionário de sinônimos
+const synonyms = {
+    "acc": ["accs", "atividades complementares", "atividades curriculares complementares", "horas complementares"],
+    "obter": ["conseguir", "adquirir", "ganhar", "captar", "alcançar"],
+    "como": ["de que forma", "de que maneira", "qual o jeito"],
+    "validar": ["homologar", "certificar", "convalidar", "aprovar"],
+    "quantidade": ["número", "total", "soma", "montante"],
+    "dificuldade": ["dificil", "complicado", "complexo", "desafiador"],
+    "tipo": ["categoria", "classe", "espécie", "modalidade"],
+    "documento": ["certificado", "comprovante", "papel", "registro"],
+    "prazo": ["data limite", "período", "tempo", "data final"],
+    "projeto": ["iniciativa", "plano", "empreendimento", "atividade"],
+    "curso": ["graduação", "faculdade", "formação", "ensino superior"],
+    "horas": ["carga horária", "tempo", "duração"],
+    "necessário": ["preciso", "exigido", "requerido", "obrigatório"],
+    "participar": ["fazer parte", "estar presente", "comparecer", "integrar"],
+    "evento": ["atividade", "ocasião", "acontecimento", "encontro"],
+    "palestra": ["conferência", "aula magna", "seminário", "exposição"],
+    "certificado": ["diploma", "atestado", "declaração", "comprovante"],
+    "secretaria": ["coordenação", "administração", "setor acadêmico"],
+    "professor": ["docente", "educador", "orientador", "coordenador"],
+    "aluno": ["estudante", "discente", "universitário"],
+    "graduação": ["curso superior", "faculdade", "ensino superior"],
+    "semestre": ["período", "quadrimestre", "etapa"],
+    "atividade": ["ação", "tarefa", "exercício", "prática"]
+};
+
+// Função para expandir sinônimos nos padrões de treinamento
+function expandSynonymsInPatterns() {
+    for (const intent in trainingData) {
+        const originalPatterns = [...trainingData[intent].patterns];
+        
+        originalPatterns.forEach(pattern => {
+            const words = pattern.toLowerCase().split(/\s+/);
+            
+            // Gerar variações com sinônimos
+            const variations = generateVariationsWithSynonyms(words);
+            
+            // Adicionar variações aos padrões de treinamento (evitando duplicatas)
+            variations.forEach(variation => {
+                const variationText = variation.join(' ');
+                if (!trainingData[intent].patterns.includes(variationText)) {
+                    trainingData[intent].patterns.push(variationText);
+                }
+            });
+        });
+    }
+}
+
+// Função para gerar variações de frases com sinônimos
+function generateVariationsWithSynonyms(words) {
+    const variations = [];
+    
+    // Primeiro, adicionar a versão original
+    variations.push([...words]);
+    
+    // Gerar variações substituindo palavras por seus sinônimos
+    words.forEach((word, index) => {
+        if (synonyms[word]) {
+            synonyms[word].forEach(synonym => {
+                const newVariation = [...words];
+                newVariation[index] = synonym;
+                variations.push(newVariation);
+                
+                // Gerar variações aninhadas
+                generateNestedVariations(newVariation, index + 1, variations);
+            });
+        }
+    });
+    
+    return variations;
+}
+
+// Função auxiliar para gerar variações aninhadas
+function generateNestedVariations(currentVariation, startIndex, variations) {
+    for (let i = startIndex; i < currentVariation.length; i++) {
+        const word = currentVariation[i];
+        if (synonyms[word]) {
+            synonyms[word].forEach(synonym => {
+                const newVariation = [...currentVariation];
+                newVariation[i] = synonym;
+                
+                // Verificar se esta variação já existe
+                const exists = variations.some(v => 
+                    v.join(' ') === newVariation.join(' '));
+                
+                if (!exists) {
+                    variations.push(newVariation);
+                    generateNestedVariations(newVariation, i + 1, variations);
+                }
+            });
+        }
+    }
+}
+
+// Expandir sinônimos nos padrões de treinamento
+expandSynonymsInPatterns();
+
+// Atualizar a função de pré-processamento para incluir substituição de sinônimos
+function preprocessText(text) {
+    let processedText = text.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/[^\w\s]/gi, '') // Remove pontuação
+        .trim();
+    
+    // Substituir palavras por seus equivalentes canônicos usando sinônimos
+    const words = processedText.split(/\s+/);
+    const canonicalWords = words.map(word => {
+        // Encontrar a palavra canônica (a chave do dicionário de sinônimos)
+        for (const [canonical, synonymsList] of Object.entries(synonyms)) {
+            if (canonical === word || synonymsList.includes(word)) {
+                return canonical;
+            }
+        }
+        return word;
+    });
+    
+    return canonicalWords.join(' ');
+}
